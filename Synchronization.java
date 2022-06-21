@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.swing.DefaultListModel;
 import javax.swing.table.DefaultTableModel;
+import org.apache.commons.collections4.CollectionUtils;
 
 /**
  *
@@ -249,6 +250,8 @@ public class Synchronization extends javax.swing.JFrame {
             if(table_count_checker(h)==0){
                 column_count_checker(h);
                 datatype_checker(h);
+                data_length_checker(h);
+                column_difference(h);
             }
         } catch (FileNotFoundException | SQLException ex) {
             ex.getMessage();
@@ -294,7 +297,7 @@ public class Synchronization extends javax.swing.JFrame {
                     nb_fe=rst.getInt(1);
         }
         
-        String query1="SELECT COUNT(*)FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '"+frontend.getDatabase()+"' AND table_name ='"+h+"';"  ;
+        String query1="SELECT COUNT(*)FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '"+backoffice.getDatabase()+"' AND table_name ='"+h+"';"  ;
         ResultSet rst1 = backoffice.getStmt().executeQuery(query1);
         while (rst1.next()){
                 nb_bo=rst1.getInt(1);
@@ -330,8 +333,62 @@ public class Synchronization extends javax.swing.JFrame {
                               
     }
     
-    
+    public void column_difference(String h) throws SQLException{
+                         List<String> list_fe = new ArrayList<String>();
+                         List<String> list_bo = new ArrayList<String>();
 
+                     String q1=" Select COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE "
+                             + " TABLE_SCHEMA = '"+frontend.getDatabase()+"'  AND table_name ='"+h+"';";
+                     ResultSet rst44 = frontend.getStmt().executeQuery(q1);
+                              while (rst44.next()){
+                                  
+                              list_fe.add(rst44.getString(1));
+                            }
+                              
+                     String q2=" Select COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE "
+                             + " TABLE_SCHEMA = '"+backoffice.getDatabase()+"'  AND table_name ='"+h+"';";
+                      ResultSet rst45 = backoffice.getStmt().executeQuery(q2);
+                              while (rst45.next()){
+                                  
+                              list_bo.add(rst45.getString(1));
+                            }
+                      List<String> list = new ArrayList<>(CollectionUtils.disjunction(list_fe, list_bo));
+                      if(list.isEmpty()!=true){
+                      System.out.format("the different columns between the two tables are %s\n\n", list);}
+                     
+
+        }
+
+  public void data_length_checker(String h) throws SQLException{
+  
+                        List<String> list4 = new ArrayList<String>();
+                         List<String> list5 = new ArrayList<String>();
+                         
+                         {
+                             
+                             String q31="SELECT CHARACTER_MAXIMUM_LENGTH FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '"+frontend.getDatabase()+"' AND TABLE_NAME= '"+h+"'";
+                             ResultSet rst44 = frontend.getStmt().executeQuery(q31);
+                              while (rst44.next()){
+                                  
+                              list4.add(rst44.getString(1));
+                            }
+                              
+
+                              String q32="SELECT CHARACTER_MAXIMUM_LENGTH FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '"+backoffice.getDatabase()+"' AND TABLE_NAME= '"+h+"'";
+                             ResultSet rst45 = backoffice.getStmt().executeQuery(q32);
+                              while (rst45.next()){
+                                  
+                              list5.add(rst45.getString(1));
+                            }
+                              if(list4.equals(list5)==true){System.out.format("the table : %s has the same datatypes length in both databases\n",h);
+                              }
+                              else{ System.out.format("the table : %s has different datatypes length in both databases\n",h); }
+                              
+                            }
+                         
+  
+  
+  }
     
     
     private void Golden_Gate_ButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_Golden_Gate_ButtonActionPerformed
