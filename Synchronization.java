@@ -250,6 +250,7 @@ public class Synchronization extends javax.swing.JFrame {
             if(table_count_checker(h)==0){
                 column_count_checker(h);
                 datatype_checker(h);
+                data_length_checker(h);
                 column_difference(h);
             }
         } catch (FileNotFoundException | SQLException ex) {
@@ -358,7 +359,36 @@ public class Synchronization extends javax.swing.JFrame {
 
         }
 
+  public void data_length_checker(String h) throws SQLException{
+  
+                        List<String> list4 = new ArrayList<String>();
+                         List<String> list5 = new ArrayList<String>();
+                         
+                         {
+                             
+                             String q31="SELECT CHARACTER_MAXIMUM_LENGTH FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '"+frontend.getDatabase()+"' AND TABLE_NAME= '"+h+"'";
+                             ResultSet rst44 = frontend.getStmt().executeQuery(q31);
+                              while (rst44.next()){
+                                  
+                              list4.add(rst44.getString(1));
+                            }
+                              
 
+                              String q32="SELECT CHARACTER_MAXIMUM_LENGTH FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '"+backoffice.getDatabase()+"' AND TABLE_NAME= '"+h+"'";
+                             ResultSet rst45 = backoffice.getStmt().executeQuery(q32);
+                              while (rst45.next()){
+                                  
+                              list5.add(rst45.getString(1));
+                            }
+                              if(list4.equals(list5)==true){System.out.format("the table : %s has the same datatypes length in both databases\n",h);
+                              }
+                              else{ System.out.format("the table : %s has different datatypes length in both databases\n",h); }
+                              
+                            }
+                         
+  
+  
+  }
     
     
     private void Golden_Gate_ButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_Golden_Gate_ButtonActionPerformed
