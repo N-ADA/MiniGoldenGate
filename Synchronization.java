@@ -2,17 +2,45 @@ package com.mycompany.minigoldengate;
 
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.DefaultListModel;
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
+import mainframe.BackOffice;
+import mainframe.Data_Report;
+import mainframe.ExcelReader;
+import mainframe.FrontEnd;
+import mainframe.Structure_Report;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.poi.EncryptedDocumentException;
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.xssf.usermodel.XSSFRow;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 /**
  *
@@ -22,17 +50,26 @@ public class Synchronization extends javax.swing.JFrame {
 
     DefaultListModel<String> tables_list;
     DefaultListModel report_list;
+    DefaultListModel file_list=new DefaultListModel<>();
     FrontEnd frontend;
     BackOffice backoffice;
-    
+    int nb_bo = 0;
+    int nb_fe = 0;
+     FileOutputStream fileOut;
+      XSSFSheet sheet;
+      XSSFWorkbook workbook;
     public Synchronization(){
         initComponents();
     }
     
-    public Synchronization(FrontEnd frontend, BackOffice backoffice) {
+    public Synchronization(FrontEnd frontend, BackOffice backoffice) throws FileNotFoundException, IOException, InvalidFormatException {
         this.frontend = frontend;
         this.backoffice = backoffice;
         initComponents();
+        fileOut=frontend.func_file();
+        sheet=frontend.funct_wb();
+        workbook=frontend.getWorkbook();
+  
     }
 
     /**
@@ -244,13 +281,16 @@ public class Synchronization extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void Structure_Sync_ButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_Structure_Sync_ButtonActionPerformed
-        
+       
         report_list = new DefaultListModel<>();
+       
+     
         
+         
         for (int i = 0; i < jList.getModel().getSize(); i++){    
             String table_name = jList.getModel().getElementAt(i);
             report_list.addElement("---Checking "+table_name+"---");
-            
+          
             try {
                 if(table_count_checker(table_name)==0){
                     column_count_checker(table_name);
@@ -260,17 +300,22 @@ public class Synchronization extends javax.swing.JFrame {
                 }
             } catch (FileNotFoundException | SQLException ex) {
             ex.getMessage();
+            } catch (IOException ex) {
+                Logger.getLogger(mainframe.Synchronization.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (InvalidFormatException ex) {
+                Logger.getLogger(mainframe.Synchronization.class.getName()).log(Level.SEVERE, null, ex);
             }
         
         }
         
-        new Structure_Report(report_list).setVisible(true);        
+        new Structure_Report(report_list).setVisible(true); 
+      
         
     }//GEN-LAST:event_Structure_Sync_ButtonActionPerformed
 
   
 
-    public int table_count_checker(String table_name) throws FileNotFoundException, SQLException{
+    public int table_count_checker(String table_name) throws FileNotFoundException, SQLException, IOException, IOException, IOException, IOException, InvalidFormatException{
         int o = 0;
         int bo=0;
         
@@ -282,6 +327,11 @@ public class Synchronization extends javax.swing.JFrame {
                               
         if(o==0){
             report_list.addElement("the table you have selected:'"+table_name+"' does not exist in database '"+frontend.getDatabase()+"'");
+            
+            
+            nb_bo=0;
+            nb_fe=0;
+            create_excel(table_name,nb_fe,nb_bo,"n");
             return 1;
         }
         String q5="SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '"+backoffice.getDatabase()+"' AND table_name ='"+table_name+"';";
@@ -291,20 +341,34 @@ public class Synchronization extends javax.swing.JFrame {
         }
         if(bo==0){
             report_list.addElement("the table you have selected:'"+table_name+"' does not exist in database '"+backoffice.getDatabase()+"'"); 
+           
+            nb_bo=0;
+            nb_fe=0;
+            create_excel(table_name,nb_fe,nb_bo,"n");
             return 1;
         }
         if(o==0 && bo==0){
             report_list.addElement("the table you have selected:'"+table_name+"' does not exist in database '"+frontend.getDatabase()+"' and '"+frontend.getDatabase()+"'");
+            nb_bo=0;
+            nb_fe=0;
             return 1;
         }
-        else return 0;
+         if(o==0 || bo==0){
+            report_list.addElement("the table you have selected:'"+table_name+"' does not exist in database '"+frontend.getDatabase()+"' and '"+frontend.getDatabase()+"'");
+            nb_bo=0;
+            nb_fe=0;
+            create_excel(table_name,nb_fe,nb_bo,"n");
+            return 1;
+        }
+       
+        
+        return 0;
     }
     
     
     
-    public void column_count_checker(String table_name) throws SQLException{
-        int nb_bo = 0;
-        int nb_fe = 0;
+    public void column_count_checker(String table_name) throws SQLException, IOException, FileNotFoundException, InvalidFormatException{
+        
         String query="SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '"+frontend.getDatabase()+"' AND table_name ='"+table_name+"';";
         ResultSet rst = frontend.getStmt().executeQuery(query);
         while (rst.next()){
@@ -320,6 +384,7 @@ public class Synchronization extends javax.swing.JFrame {
             report_list.addElement("the number of columns of table: "+table_name+" in the '"+frontend.getDatabase()+"' and '"+backoffice.getDatabase()+"' is the same");
         }else{         
           report_list.addElement("the number of columns of table : "+table_name+" in the '"+frontend.getDatabase()+"' and '"+backoffice.getDatabase()+"' is not the same");
+          
         }
              
     }
@@ -376,7 +441,7 @@ public class Synchronization extends javax.swing.JFrame {
     
     
     
-    public void data_length_checker(String table_name) throws SQLException{
+    public void data_length_checker(String table_name) throws SQLException, IOException, FileNotFoundException, InvalidFormatException{
 
         List<String> list = new ArrayList<>();
         List<String> list2 = new ArrayList<>();
@@ -394,11 +459,87 @@ public class Synchronization extends javax.swing.JFrame {
         }
         if(list.equals(list2)==true){
             report_list.addElement("the table : "+table_name+" has the same datatypes length in both databases");
+            create_excel(table_name,nb_fe,nb_bo,"y");
         }
         else{
             System.out.format("the table : "+table_name+" has different datatypes length in both databases");
+            create_excel(table_name,nb_fe,nb_bo,"n");
         }
    }
+    int count=0;
+
+    public void create_excel(String table_name,int Rows_FE,int Rows_BO,String Status) throws FileNotFoundException, IOException, InvalidFormatException{
+            int max=jList.getModel().getSize();
+               
+            File xlsxFile = new File("Details.xlsx");
+         
+           Object[][] newinfo = {{table_name,Rows_FE,Rows_BO,Status}};
+          
+         
+            FileInputStream inputStream = new FileInputStream(xlsxFile);
+          System.out.println(max);
+          System.out.println(jList.getModel().getSize());
+          System.out.println(count);
+            
+ 
+            Sheet sheet = workbook.getSheetAt(0);
+ 
+            int rowCount = sheet.getLastRowNum();
+  ////////////////////// Static content_bar ///////////////////////////
+                Object[][] newinfo1 = {{"table_name","Rows_FE","Rows_BO","Status"}};
+                for (Object[] details : newinfo1) {
+              
+                Row row1 = sheet.createRow(0);
+ 
+                int columnCount1 = 0;
+ 
+                for (Object info : details) {
+                    Cell cell = row1.createCell(columnCount1++);
+                    if (info instanceof String) {
+                        cell.setCellValue((String) info);
+                    } else if (info instanceof Integer) {
+                        cell.setCellValue((Integer) info);
+                    }
+                }
+            }
+     ////////////////////// Dynamnic content ///////////////////////////         
+            for (Object[] details : newinfo) {
+              
+                Row row = sheet.createRow(++rowCount);
+ 
+                int columnCount = 0;
+ 
+                
+                for (Object info : details) {
+                     
+                    
+                    Cell cell = row.createCell(columnCount++);
+                    if (info instanceof String) {
+                        cell.setCellValue((String) info);
+                    } else if (info instanceof Integer) {
+                        cell.setCellValue((Integer) info);
+                    }
+                }
+            }
+            inputStream.close();
+             FileOutputStream os = new FileOutputStream(xlsxFile);
+            workbook.write(os);
+             System.out.println("outside workbook");
+            //Close the workbook and output stream
+            count++;
+            if(count==max){  
+            workbook.close();
+              System.out.println("closing workbook");
+               
+             
+            os.close();
+             System.out.println("closing os");
+            System.out.println("Excel file has been updated successfully.");
+              
+        }
+    }
+
+    
     
 
     private void Golden_Gate_ButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_Golden_Gate_ButtonActionPerformed
@@ -411,22 +552,24 @@ public class Synchronization extends javax.swing.JFrame {
 
     private void Read_Excel_ButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_Read_Excel_ButtonActionPerformed
 
+       
         String excel = excel_name.getText();
         tables_list = new DefaultListModel<>();
         ExcelReader reading = new ExcelReader();
         
         try {
-            reading.check_status(excel);
+            
             tables_list.addAll(reading.check_status(excel));
         } catch (IOException ex) {
-           ex.getMessage();
+           System.out.println("there is a problem in the path");
         }
         
         jList.setModel(tables_list);
         DisplayTables_OnClick();
         
+        
     }//GEN-LAST:event_Read_Excel_ButtonActionPerformed
-    
+         
     public void DisplayTables_OnClick(){
         jList.addMouseListener(new MouseListener(){
            
@@ -502,7 +645,7 @@ public class Synchronization extends javax.swing.JFrame {
     }
     
     private void Data_Sync_ButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_Data_Sync_ButtonActionPerformed
-        report_list = new DefaultListModel<>();
+         report_list = new DefaultListModel<>();
         //iterate through the list of the tables
         for (int i = 0; i < jList.getModel().getSize(); i++) {
             String table_name = jList.getModel().getElementAt(i);
@@ -515,7 +658,7 @@ public class Synchronization extends javax.swing.JFrame {
         new Data_Report(report_list).setVisible(true);
     }//GEN-LAST:event_Data_Sync_ButtonActionPerformed
    
-    public void Data_Synchronization(String table_name){
+ public void Data_Synchronization(String table_name){
         String key="", data_type;
         String compare1 = "",compare2="";
         ResultSet rst, rst2;
@@ -659,7 +802,7 @@ public class Synchronization extends javax.swing.JFrame {
         
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(() -> {
-            new Synchronization().setVisible(true);
+            new mainframe.Synchronization().setVisible(true);
         });
     
         
