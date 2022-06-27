@@ -55,6 +55,8 @@ public class Synchronization extends javax.swing.JFrame {
     BackOffice backoffice;
     int nb_bo = 0;
     int nb_fe = 0;
+    int row_fe=0;
+    int row_bo=0;
      FileOutputStream fileOut;
       XSSFSheet sheet;
       XSSFWorkbook workbook;
@@ -293,6 +295,7 @@ public class Synchronization extends javax.swing.JFrame {
           
             try {
                 if(table_count_checker(table_name)==0){
+                    row_count(table_name);
                     column_count_checker(table_name);
                     datatype_checker(table_name);
                     data_length_checker(table_name);
@@ -315,6 +318,31 @@ public class Synchronization extends javax.swing.JFrame {
 
   
 
+   public void row_count(String table_name) throws SQLException{
+      
+   String q4="SELECT COUNT(*) FROM "+frontend.getDatabase()+"."+table_name+";"  ;
+   
+        ResultSet rst49 = frontend.getStmt().executeQuery(q4);
+        System.out.println(q4);
+        while (rst49.next()){
+            row_fe=rst49.getInt(1);
+        }
+        
+         String q5="SELECT COUNT(*) FROM "+backoffice.getDatabase()+"."+table_name+";"  ;
+        ResultSet rst400= backoffice.getStmt().executeQuery(q5);
+        System.out.println(q5);
+        while (rst400.next()){
+            row_bo=rst400.getInt(1);
+        }
+         if(row_bo==row_fe){
+            report_list.addElement("the number of row of table: "+table_name+" in the '"+frontend.getDatabase()+"' and '"+backoffice.getDatabase()+"' is the same");
+        }else{         
+          report_list.addElement("the number of row of table : "+table_name+" in the '"+frontend.getDatabase()+"' and '"+backoffice.getDatabase()+"' is not the same");
+          
+        }
+  
+  }
+
     public int table_count_checker(String table_name) throws FileNotFoundException, SQLException, IOException, IOException, IOException, IOException, InvalidFormatException{
         int o = 0;
         int bo=0;
@@ -329,9 +357,9 @@ public class Synchronization extends javax.swing.JFrame {
             report_list.addElement("the table you have selected:'"+table_name+"' does not exist in database '"+frontend.getDatabase()+"'");
             
             
-            nb_bo=0;
-            nb_fe=0;
-            create_excel(table_name,nb_fe,nb_bo,"n");
+            row_bo=0;
+            row_fe=0;
+            create_excel(table_name,row_fe,row_bo,"n");
             return 1;
         }
         String q5="SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '"+backoffice.getDatabase()+"' AND table_name ='"+table_name+"';";
@@ -342,22 +370,22 @@ public class Synchronization extends javax.swing.JFrame {
         if(bo==0){
             report_list.addElement("the table you have selected:'"+table_name+"' does not exist in database '"+backoffice.getDatabase()+"'"); 
            
-            nb_bo=0;
-            nb_fe=0;
-            create_excel(table_name,nb_fe,nb_bo,"n");
+            row_fe=0;
+            row_bo=0;
+            create_excel(table_name,row_fe,row_bo,"n");
             return 1;
         }
         if(o==0 && bo==0){
             report_list.addElement("the table you have selected:'"+table_name+"' does not exist in database '"+frontend.getDatabase()+"' and '"+frontend.getDatabase()+"'");
-            nb_bo=0;
-            nb_fe=0;
+            row_fe=0;
+            row_bo=0;
             return 1;
         }
          if(o==0 || bo==0){
             report_list.addElement("the table you have selected:'"+table_name+"' does not exist in database '"+frontend.getDatabase()+"' and '"+frontend.getDatabase()+"'");
-            nb_bo=0;
-            nb_fe=0;
-            create_excel(table_name,nb_fe,nb_bo,"n");
+            row_bo=0;
+            row_fe=0;
+            create_excel(table_name,row_fe,row_bo,"n");
             return 1;
         }
        
@@ -459,11 +487,11 @@ public class Synchronization extends javax.swing.JFrame {
         }
         if(list.equals(list2)==true){
             report_list.addElement("the table : "+table_name+" has the same datatypes length in both databases");
-            create_excel(table_name,nb_fe,nb_bo,"y");
+            create_excel(table_name,row_fe,row_bo,"y");
         }
         else{
             System.out.format("the table : "+table_name+" has different datatypes length in both databases");
-            create_excel(table_name,nb_fe,nb_bo,"n");
+            create_excel(table_name,row_fe,row_bo,"n");
         }
    }
     int count=0;
@@ -477,10 +505,7 @@ public class Synchronization extends javax.swing.JFrame {
           
          
             FileInputStream inputStream = new FileInputStream(xlsxFile);
-          System.out.println(max);
-          System.out.println(jList.getModel().getSize());
-          System.out.println(count);
-            
+         
  
             Sheet sheet = workbook.getSheetAt(0);
  
@@ -524,22 +549,19 @@ public class Synchronization extends javax.swing.JFrame {
             inputStream.close();
              FileOutputStream os = new FileOutputStream(xlsxFile);
             workbook.write(os);
-             System.out.println("outside workbook");
+             
             //Close the workbook and output stream
             count++;
             if(count==max){  
             workbook.close();
-              System.out.println("closing workbook");
-               
+             
              
             os.close();
-             System.out.println("closing os");
+            
             System.out.println("Excel file has been updated successfully.");
               
         }
     }
-
-    
     
 
     private void Golden_Gate_ButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_Golden_Gate_ButtonActionPerformed
