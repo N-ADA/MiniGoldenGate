@@ -159,10 +159,7 @@ public class ExcelReader extends JFrame {
 
    
 
-    public List<String> getMerged_FE_and_BO() {
-        return Merged_FE_and_BO;
-    }
       public List<String> getBID_FE_and_BO() {
-        return Merged_FE_and_BO;
+        return BID_FE_and_BO;
     }
 }
