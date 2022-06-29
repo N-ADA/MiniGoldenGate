@@ -1,7 +1,11 @@
 
 //This class established a connection with the FrontEnd
 package com.mycompany.minigoldengate;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.sql.*;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 /**
  *
@@ -14,7 +18,7 @@ public class FrontEnd {
     private String database;
     private Connection conn = null;
     private Statement stmt = null;
-    
+    public XSSFWorkbook workbook = new XSSFWorkbook();
     public FrontEnd(){
     }
     
@@ -55,5 +59,21 @@ public class FrontEnd {
     public Statement getStmt() {
         return stmt;
     }
+    
+  
+        public FileOutputStream func_file() throws FileNotFoundException{
+             FileOutputStream fileOut = new FileOutputStream("Details.xlsx");
+             System.out.println("file was created");
+        return fileOut;
+        }
+        
+        public XSSFSheet funct_wb(){
+              XSSFSheet sheet = workbook.createSheet("Sheet 1");
+              
+        return sheet;
+        }
+        public XSSFWorkbook getWorkbook(){
+         return workbook;
+        }
     
 }

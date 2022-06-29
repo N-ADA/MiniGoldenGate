@@ -2,17 +2,45 @@ package com.mycompany.minigoldengate;
 
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.DefaultListModel;
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
+import mainframe.BackOffice;
+import mainframe.Data_Report;
+import mainframe.ExcelReader;
+import mainframe.FrontEnd;
+import mainframe.Structure_Report;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.poi.EncryptedDocumentException;
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.xssf.usermodel.XSSFRow;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 /**
  *
@@ -20,19 +48,34 @@ import org.apache.commons.collections4.CollectionUtils;
  */
 public class Synchronization extends javax.swing.JFrame {
 
+  
     DefaultListModel<String> tables_list;
     DefaultListModel report_list;
+    DefaultListModel file_list=new DefaultListModel<>();
     FrontEnd frontend;
     BackOffice backoffice;
-    
+    int nb_bo = 0;
+    int nb_fe = 0;
+    int row_fe=0;
+    int row_bo=0;
+    ExcelReader reading ;
+    String direction;
+    ArrayList<String> comment_list= new ArrayList();
+    FileOutputStream fileOut;
+    XSSFSheet sheet;
+    XSSFWorkbook workbook;
     public Synchronization(){
         initComponents();
     }
     
-    public Synchronization(FrontEnd frontend, BackOffice backoffice) {
+    public Synchronization(FrontEnd frontend, BackOffice backoffice) throws FileNotFoundException, IOException, InvalidFormatException {
         this.frontend = frontend;
         this.backoffice = backoffice;
         initComponents();
+        fileOut=frontend.func_file();
+        sheet=frontend.funct_wb();
+        workbook=frontend.getWorkbook();
+  
     }
 
     /**
@@ -244,33 +287,150 @@ public class Synchronization extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void Structure_Sync_ButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_Structure_Sync_ButtonActionPerformed
-        
+       
         report_list = new DefaultListModel<>();
+       
+     
         
+         
         for (int i = 0; i < jList.getModel().getSize(); i++){    
             String table_name = jList.getModel().getElementAt(i);
             report_list.addElement("---Checking "+table_name+"---");
-            
-            try {
+          
+          try {
                 if(table_count_checker(table_name)==0){
+                    row_count(table_name);
+                    primary_key( table_name);
+                    column_difference(table_name);
                     column_count_checker(table_name);
                     datatype_checker(table_name);
                     data_length_checker(table_name);
-                    column_difference(table_name);
+                    
+                    
                 }
             } catch (FileNotFoundException | SQLException ex) {
             ex.getMessage();
+            } catch (IOException ex) {
+                Logger.getLogger(mainframe.Synchronization.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (InvalidFormatException ex) {
+                Logger.getLogger(mainframe.Synchronization.class.getName()).log(Level.SEVERE, null, ex);
             }
         
         }
         
-        new Structure_Report(report_list).setVisible(true);        
+        new Structure_Report(report_list).setVisible(true); 
+      
         
     }//GEN-LAST:event_Structure_Sync_ButtonActionPerformed
+   public void primary_key(String table_name) throws SQLException{
+        
+        
+        String a = null;
+        String b = null;
+        List<String> list4 = new ArrayList<>();
+        List<String> list5 = new ArrayList<>();
+        
+     
+        if(reading.FE_list.contains(table_name)==true && reading.getBO_list().contains(table_name)==false){
+            direction="FE->BO";
+             String q4="show columns FROM "+frontend.getDatabase()+"."+table_name+" where `Key` = 'PRI';"  ;
+          
+             
+            ResultSet rst49 = frontend.getStmt().executeQuery(q4);
+              while (rst49.next()){
+                  list4.add(rst49.getString(1));
+              }
+           String q5="show columns FROM "+backoffice.getDatabase()+"."+table_name+" where `Key` = 'PRI';"  ;
+           ResultSet rst50= backoffice.getStmt().executeQuery(q5);
+          
+              while (rst50.next()){
+                  list5.add(rst50.getString(1));
+              } 
+              if(list5.equals(list4)==true){
+                   report_list.addElement("the primary key is the same");
+                   comment_list.add(" the primary key is the same\n");
+          }else{
+                  report_list.addElement("the table in "+backoffice.getDatabase()+" contains a wrong primary key= "+q5);
+                  comment_list.add(" the table in "+backoffice.getDatabase()+" contains a wrong primary key= "+q5+"\n");
+          
+          } 
+        }else if(reading.FE_list.contains(table_name)==false && reading.BO_list.contains(table_name)==true){
+            direction="BO->FE";
+            String q4="show columns FROM "+frontend.getDatabase()+"."+table_name+" where `Key` = 'PRI';"  ;
+            ResultSet rst49 = frontend.getStmt().executeQuery(q4);
+            
+              while (rst49.next()){
+                  list4.add(rst49.getString(1));
+              }
+              String q5="show columns FROM "+backoffice.getDatabase()+"."+table_name+" where `Key` = 'PRI';"  ;
+              ResultSet rst50= backoffice.getStmt().executeQuery(q5);
+              while (rst50.next()){
+                  list5.add(rst50.getString(1));
+              } 
+              if(list5.equals(list4)==true){
+                 report_list.addElement("the primary key is the same");
+                 comment_list.add(" the primary key is the same\n");
+          }else{
+                  report_list.addElement("the table in "+frontend.getDatabase()+" contains a wrong primary key= "+q4);
+                  comment_list.add(" the table in "+frontend.getDatabase()+" contains a wrong primary key= "+q4+"\n");
+          }
+        
+        
+        
+        }else if(reading.getBID_FE_and_BO().contains(table_name)==true ){
+            direction="Bidirectional";
+             String q4="show columns FROM "+frontend.getDatabase()+"."+table_name+" where `Key` = 'PRI';"  ;
+             ResultSet rst49 = frontend.getStmt().executeQuery(q4);
+             
+              while (rst49.next()){
+                  list4.add(rst49.getString(1));
+              }
+             String q5="show columns FROM "+backoffice.getDatabase()+"."+table_name+" where `Key` = 'PRI';"  ;
+               ResultSet rst50= backoffice.getStmt().executeQuery(q5);
+              
+              while (rst50.next()){
+                  list5.add(rst50.getString(1));
+              } 
+               if(list5.equals(list4)==true){
+                  report_list.addElement("the primary key is the same");
+                  comment_list.add(" the primary key is the same\n");
+          }else{
+                 report_list.addElement("the table in "+frontend.getDatabase()+" contains a wrong primary key= "+q4);
+                  comment_list.add(" the table in "+frontend.getDatabase()+" contains a wrong primary key= "+q4+"\n");
+          }
+        }
+       
+        
+             
+    }
+  public void row_count(String table_name) throws SQLException{
+      
+   String q4="SELECT COUNT(*) FROM "+frontend.getDatabase()+"."+table_name+";"  ;
+   
+        ResultSet rst49 = frontend.getStmt().executeQuery(q4);
+     
+        while (rst49.next()){
+            row_fe=rst49.getInt(1);
+        }
+        
+         String q5="SELECT COUNT(*) FROM "+backoffice.getDatabase()+"."+table_name+";"  ;
+        ResultSet rst400= backoffice.getStmt().executeQuery(q5);
+       
+        while (rst400.next()){
+            row_bo=rst400.getInt(1);
+        }
+         if(row_bo==row_fe){
+            report_list.addElement("the number of row  in the '"+frontend.getDatabase()+"' and '"+backoffice.getDatabase()+"' is the same");
+            comment_list.add(" nb of row  in the  '"+frontend.getDatabase()+"' and '"+backoffice.getDatabase()+"' is the same\n");
+        }else if (row_bo!=row_fe){         
+          report_list.addElement("the number of row of table : "+table_name+" in the '"+frontend.getDatabase()+"' and '"+backoffice.getDatabase()+"' is not the same");
+          comment_list.add(" nb of row  in the  '"+frontend.getDatabase()+"' and '"+backoffice.getDatabase()+"' is not the same\n");
+          
+        }
+         
+  }
 
-  
-
-    public int table_count_checker(String table_name) throws FileNotFoundException, SQLException{
+    public int table_count_checker(String table_name) throws FileNotFoundException, SQLException, IOException, IOException, IOException, IOException, InvalidFormatException{
         int o = 0;
         int bo=0;
         
@@ -279,32 +439,49 @@ public class Synchronization extends javax.swing.JFrame {
         while (rst40.next()){
             o=rst40.getInt(1);
         }
-                              
-        if(o==0){
-            report_list.addElement("the table you have selected:'"+table_name+"' does not exist in database '"+frontend.getDatabase()+"'");
-            return 1;
-        }
-        String q5="SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '"+backoffice.getDatabase()+"' AND table_name ='"+table_name+"';";
+         String q5="SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = '"+backoffice.getDatabase()+"' AND table_name ='"+table_name+"';";
         ResultSet rst20 = backoffice.getStmt().executeQuery(q5);
         while (rst20.next()){
             bo=rst20.getInt(1);
         }
+         
+
+         if(o==0 && bo==0){
+            report_list.addElement("the table you have selected:'"+table_name+"' does not exist in database '"+frontend.getDatabase()+"' and '"+backoffice.getDatabase()+"'");
+            comment_list.add(" it does not exist in database '"+frontend.getDatabase()+"' and '"+backoffice.getDatabase()+"'");
+            row_fe=0;
+            row_bo=0;
+             comment_list.clear();
+            return 1;
+        }                     
+        if(o==0){
+            report_list.addElement("the table you have selected:'"+table_name+"' does not exist in database '"+frontend.getDatabase()+"'");
+            comment_list.add(" it does not exist in database '"+frontend.getDatabase()+"'\n");
+            row_bo=0;
+            row_fe=0;
+            create_excel(table_name,row_fe,row_bo,"N",direction,comment_list);
+             comment_list.clear();
+            return 1;
+        }
+       
         if(bo==0){
             report_list.addElement("the table you have selected:'"+table_name+"' does not exist in database '"+backoffice.getDatabase()+"'"); 
+            comment_list.add(" does not exist in database '"+backoffice.getDatabase()+"'\n");
+            row_fe=0;
+            row_bo=0;
+            create_excel(table_name,row_fe,row_bo,"N",direction,comment_list);
+             comment_list.clear();
             return 1;
         }
-        if(o==0 && bo==0){
-            report_list.addElement("the table you have selected:'"+table_name+"' does not exist in database '"+frontend.getDatabase()+"' and '"+frontend.getDatabase()+"'");
-            return 1;
-        }
-        else return 0;
+        
+       
+        return 0;
     }
     
     
     
-    public void column_count_checker(String table_name) throws SQLException{
-        int nb_bo = 0;
-        int nb_fe = 0;
+    public void column_count_checker(String table_name) throws SQLException, IOException, FileNotFoundException, InvalidFormatException{
+        
         String query="SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '"+frontend.getDatabase()+"' AND table_name ='"+table_name+"';";
         ResultSet rst = frontend.getStmt().executeQuery(query);
         while (rst.next()){
@@ -318,8 +495,10 @@ public class Synchronization extends javax.swing.JFrame {
         }
         if(nb_bo==nb_fe){
             report_list.addElement("the number of columns of table: "+table_name+" in the '"+frontend.getDatabase()+"' and '"+backoffice.getDatabase()+"' is the same");
+            comment_list.add(" nb of columns  in the '"+frontend.getDatabase()+"' and '"+backoffice.getDatabase()+"' is the same\n");
         }else{         
           report_list.addElement("the number of columns of table : "+table_name+" in the '"+frontend.getDatabase()+"' and '"+backoffice.getDatabase()+"' is not the same");
+          comment_list.add(" nb of columns  in the '"+frontend.getDatabase()+"' and '"+backoffice.getDatabase()+"' is not the same\n");
         }
              
     }
@@ -331,7 +510,7 @@ public class Synchronization extends javax.swing.JFrame {
         List<String> list5 = new ArrayList<>();
      
         String q31="SELECT DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '"+frontend.getDatabase()+"' AND TABLE_NAME= '"+table_name+"'";
-        ResultSet rst44 = backoffice.getStmt().executeQuery(q31);
+        ResultSet rst44 = frontend.getStmt().executeQuery(q31);
         while (rst44.next()){
             list4.add(rst44.getString(1));
         }
@@ -342,9 +521,11 @@ public class Synchronization extends javax.swing.JFrame {
         }
         if(list4.equals(list5)==true){
             report_list.addElement("the table : "+table_name+" has the same datatypes in both databases");
+            comment_list.add(" same datatypes in both databases\n");
         }
         else{ 
            report_list.addElement("the table : "+table_name+" has different datatypes  in both databases");
+           comment_list.add(" different datatypes  in both databases\n");
         }
                               
     }
@@ -371,12 +552,13 @@ public class Synchronization extends javax.swing.JFrame {
         List<String> list = new ArrayList<>(CollectionUtils.disjunction(list_fe, list_bo));
         if(list.isEmpty()!=true){
                 report_list.addElement("the different columns between the two tables are "+list);
+                comment_list.add(" the different columns between the two tables are "+list+"\n");
         }
     }
     
     
     
-    public void data_length_checker(String table_name) throws SQLException{
+    public void data_length_checker(String table_name) throws SQLException, IOException, FileNotFoundException, InvalidFormatException{
 
         List<String> list = new ArrayList<>();
         List<String> list2 = new ArrayList<>();
@@ -394,12 +576,85 @@ public class Synchronization extends javax.swing.JFrame {
         }
         if(list.equals(list2)==true){
             report_list.addElement("the table : "+table_name+" has the same datatypes length in both databases");
+            comment_list.add(" same datatypes length in both databases\n");;;
+            create_excel(table_name,row_fe,row_bo,"Y",direction,comment_list);
         }
         else{
-            System.out.format("the table : "+table_name+" has different datatypes length in both databases");
+             report_list.addElement("the table : "+table_name+" has different datatypes length in both databases");
+             comment_list.add(" different datatypes length in both databases\n");
+            create_excel(table_name,row_fe,row_bo,"N",direction,comment_list);
         }
+        comment_list.clear();
    }
-    
+    int count=0;
+
+    public void create_excel(String table_name,int Rows_FE,int Rows_BO,String Status,String direction,ArrayList<String> comment_list) throws FileNotFoundException, IOException, InvalidFormatException{
+            int max=jList.getModel().getSize();
+               
+            File xlsxFile = new File("Details.xlsx");
+         String listString = String.join(", ", comment_list);
+           Object[][] newinfo = {{table_name,Rows_FE,Rows_BO,Status,direction,listString}};
+          
+         
+            FileInputStream inputStream = new FileInputStream(xlsxFile);
+         
+ 
+            Sheet sheet = workbook.getSheetAt(0);
+ 
+            int rowCount = sheet.getLastRowNum();
+  ////////////////////// Static content_bar ///////////////////////////
+                Object[][] newinfo1 = {{"table_name","Rows_FE","Rows_BO","Status","Direction"," ","Comments"}};
+                for (Object[] details : newinfo1) {
+              
+                Row row1 = sheet.createRow(0);
+ 
+                int columnCount1 = 0;
+ 
+                for (Object info : details) {
+                    Cell cell = row1.createCell(columnCount1++);
+                    if (info instanceof String) {
+                        cell.setCellValue((String) info);
+                    } else if (info instanceof Integer) {
+                        cell.setCellValue((Integer) info);
+                    }
+                }
+            }
+     ////////////////////// Dynamnic content ///////////////////////////         
+            for (Object[] details : newinfo) {
+              
+                Row row = sheet.createRow(++rowCount);
+ 
+                int columnCount = 0;
+ 
+                
+                for (Object info : details) {
+                     
+                    
+                    Cell cell = row.createCell(columnCount++);
+                    if (info instanceof String) {
+                        cell.setCellValue((String) info);
+                    } else if (info instanceof Integer) {
+                        cell.setCellValue((Integer) info);
+                    } 
+                }
+            }
+            inputStream.close();
+             FileOutputStream os = new FileOutputStream(xlsxFile);
+            workbook.write(os);
+             
+            //Close the workbook and output stream
+            count++;
+            if(count==max){  
+            workbook.close();
+             
+             
+            os.close();
+            
+            System.out.println("Excel file has been updated successfully.");
+              
+        }
+    }
+
 
     private void Golden_Gate_ButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_Golden_Gate_ButtonActionPerformed
         // TODO add your handling code here:
@@ -410,23 +665,24 @@ public class Synchronization extends javax.swing.JFrame {
     }//GEN-LAST:event_excel_nameActionPerformed
 
     private void Read_Excel_ButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_Read_Excel_ButtonActionPerformed
-
+ 
+    
         String excel = excel_name.getText();
         tables_list = new DefaultListModel<>();
-        ExcelReader reading = new ExcelReader();
+         reading = new ExcelReader();
         
         try {
-            reading.check_status(excel);
+            
             tables_list.addAll(reading.check_status(excel));
         } catch (IOException ex) {
-           ex.getMessage();
+           System.out.println("there is a problem in the path");
         }
         
         jList.setModel(tables_list);
         DisplayTables_OnClick();
         
     }//GEN-LAST:event_Read_Excel_ButtonActionPerformed
-    
+         
     public void DisplayTables_OnClick(){
         jList.addMouseListener(new MouseListener(){
            
@@ -502,7 +758,7 @@ public class Synchronization extends javax.swing.JFrame {
     }
     
     private void Data_Sync_ButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_Data_Sync_ButtonActionPerformed
-        report_list = new DefaultListModel<>();
+         report_list = new DefaultListModel<>();
         //iterate through the list of the tables
         for (int i = 0; i < jList.getModel().getSize(); i++) {
             String table_name = jList.getModel().getElementAt(i);
@@ -515,7 +771,7 @@ public class Synchronization extends javax.swing.JFrame {
         new Data_Report(report_list).setVisible(true);
     }//GEN-LAST:event_Data_Sync_ButtonActionPerformed
    
-    public void Data_Synchronization(String table_name){
+ public void Data_Synchronization(String table_name){
         String key="", data_type;
         String compare1 = "",compare2="";
         ResultSet rst, rst2;
@@ -659,7 +915,7 @@ public class Synchronization extends javax.swing.JFrame {
         
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(() -> {
-            new Synchronization().setVisible(true);
+            new mainframe.Synchronization().setVisible(true);
         });
     
         
