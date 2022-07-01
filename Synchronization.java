@@ -15,6 +15,8 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.DefaultListModel;
+import javax.swing.JOptionPane;
+import static javax.swing.JOptionPane.WARNING_MESSAGE;
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
 import org.apache.commons.collections4.CollectionUtils;
@@ -44,6 +46,7 @@ public class Synchronization extends javax.swing.JFrame {
     FileOutputStream fileOut;
     XSSFSheet sheet;
     XSSFWorkbook workbook = new XSSFWorkbook();
+    int jar=0;
     String direction;
     ArrayList<String> comment_list= new ArrayList();
     
@@ -284,8 +287,10 @@ public class Synchronization extends javax.swing.JFrame {
                         row_count(table_name);
                         column_count_checker(table_name);
                         datatype_checker(table_name);
-                        data_length_checker(table_name);
                         column_difference(table_name);
+                        data_length_checker(table_name);
+                        
+                        
                     }
                 } catch (Exception ex) {
                     ex.getMessage();
@@ -613,6 +618,9 @@ public class Synchronization extends javax.swing.JFrame {
                     } 
                 }
             }
+                if(Status.contains("N")){
+                    jar++;
+                    }
             inputStream.close();
              FileOutputStream os = new FileOutputStream(xlsxFile);
             workbook.write(os);
@@ -728,6 +736,14 @@ public class Synchronization extends javax.swing.JFrame {
     }
     
     private void Data_Sync_ButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_Data_Sync_ButtonActionPerformed
+       
+        
+            if(jar!=0){
+                JOptionPane.showMessageDialog(this, "Structure not synchronized !", "warning", WARNING_MESSAGE);
+            
+            
+            }
+        if(jar==0){
         report_list = new DefaultListModel<>();
         //iterate through the list of the tables
         if(!reading.getFE_list().isEmpty())report_list.addElement("Unidirectional Sync : FE -> BO");
@@ -756,6 +772,7 @@ public class Synchronization extends javax.swing.JFrame {
           
         }
         new Data_Report(report_list).setVisible(true);
+        }
     }//GEN-LAST:event_Data_Sync_ButtonActionPerformed
    
     public void Data_Synchronization(String table_name, int sync) {
