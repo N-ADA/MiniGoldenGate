@@ -286,6 +286,7 @@ public class Synchronization extends javax.swing.JFrame {
                         primary_key(table_name);
                         row_count(table_name);
                         column_count_checker(table_name);
+                        row_difference(table_name);
                         datatype_checker(table_name);
                         column_difference(table_name);
                         data_length_checker(table_name);
@@ -488,21 +489,22 @@ public class Synchronization extends javax.swing.JFrame {
 
 
 
-    public void datatype_checker(String table_name) throws SQLException{
+  public void datatype_checker(String table_name) throws SQLException{
         List<String> list4 = new ArrayList<>();
         List<String> list5 = new ArrayList<>();
 
-        String q31="SELECT DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '"+frontend.getDatabase()+"' AND TABLE_NAME= '"+table_name+"'";
+        String q31="desc "+frontend.getDatabase()+"."+table_name+";";
         ResultSet rst44 = frontend.getStmt().executeQuery(q31);
         while (rst44.next()){
-            list4.add(rst44.getString(1));
+            list4.add(rst44.getString(2));
         }
-        String q32="SELECT DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '"+backoffice.getDatabase()+"' AND TABLE_NAME= '"+table_name+"'";
+        String q32="desc "+backoffice.getDatabase()+"."+table_name+";";
         ResultSet rst45 = backoffice.getStmt().executeQuery(q32);
         while (rst45.next()){
-            list5.add(rst45.getString(1));
+            list5.add(rst45.getString(2));
         }
-        if(list4.equals(list5)==true){
+        
+        if(list4.containsAll(list5)==true && list5.containsAll(list4)==true){
             report_list.addElement("the table : "+table_name+" has the same datatypes in both databases");
             comment_list.add(" same datatypes in both databases\n");
         }
@@ -512,26 +514,45 @@ public class Synchronization extends javax.swing.JFrame {
         }
 
     }
+    public void row_difference(String table_name) throws SQLException{
+        int fe = 0,bo = 0,result;
+        String q4="SELECT COUNT(*) FROM "+frontend.getDatabase()+"."+table_name+";"  ;
+
+        ResultSet rst49 = frontend.getStmt().executeQuery(q4);
+
+        while (rst49.next()){
+            fe=rst49.getInt(1);
+        }
+
+         String q5="SELECT COUNT(*) FROM "+backoffice.getDatabase()+"."+table_name+";"  ;
+        ResultSet rst400= backoffice.getStmt().executeQuery(q5);
+
+        while (rst400.next()){
+            bo=rst400.getInt(1);
+        }
+        if(fe>bo){
+        result = fe-bo;}
+        else{ result = bo -fe;}
+        report_list.addElement("nb of rows update : "+result);
+        comment_list.add("nb of rows update : "+result);
+        
+  }
 
 
-
-    public void column_difference(String table_name) throws SQLException{
+  public void column_difference(String table_name) throws SQLException{
         List<String> list_fe = new ArrayList<>();
         List<String> list_bo = new ArrayList<>();
-
-        String q1=" Select COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE "
-                + " TABLE_SCHEMA = '"+frontend.getDatabase()+"'  AND table_name ='"+table_name+"';";
-        ResultSet rst44 = frontend.getStmt().executeQuery(q1);
+        String q31="desc "+frontend.getDatabase()+"."+table_name+";";
+        ResultSet rst44 = frontend.getStmt().executeQuery(q31);
         while (rst44.next()){
             list_fe.add(rst44.getString(1));
         }
-
-        String q2=" Select COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE "
-                + " TABLE_SCHEMA = '"+backoffice.getDatabase()+"'  AND table_name ='"+table_name+"';";
-        ResultSet rst45 = backoffice.getStmt().executeQuery(q2);
+         String q32="desc "+backoffice.getDatabase()+"."+table_name+";";
+        ResultSet rst45 = backoffice.getStmt().executeQuery(q32);
         while (rst45.next()){
             list_bo.add(rst45.getString(1));
         }
+        
         List<String> list = new ArrayList<>(CollectionUtils.disjunction(list_fe, list_bo));
         if(list.isEmpty()!=true){
                 report_list.addElement("the different columns between the two tables are "+list);
