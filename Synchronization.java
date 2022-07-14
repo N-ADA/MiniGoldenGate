@@ -316,14 +316,16 @@ public class Synchronization extends javax.swing.JFrame {
         
     }//GEN-LAST:event_Structure_Sync_ButtonActionPerformed
 
-    public void call(String table_name) throws SQLException, IOException, FileNotFoundException, InvalidFormatException{
+  public void call(String table_name) throws SQLException, IOException, FileNotFoundException, InvalidFormatException{
         if (data_length_checker(table_name)==1){
-            comment_list.add(" same datatypes length in both databases\n");;;
-            create_excel(table_name,row_fe,row_bo,row_count,time,"Y",direction,comment_list);
+            comment_list.clear();
+            comment_list.add("Struture is Sycnhronized");
+            report_list.addElement("Struture is Sycnhronized");
+            create_excel(table_name,row_fe,row_bo,time,"Y",comment_list,direction);
             comment_list.clear();
         }else{
             comment_list.add(" different datatypes length in both databases\n");
-            create_excel(table_name,row_fe,row_bo,row_count,time,"N",direction,comment_list);
+            create_excel(table_name,row_fe,row_bo,time,"N",comment_list,direction);
             comment_list.clear();
             
         }
@@ -338,7 +340,7 @@ public class Synchronization extends javax.swing.JFrame {
 
 
         if(reading.FE_list.contains(table_name)==true && reading.getBO_list().contains(table_name)==false){
-            direction="FE->BO";
+             direction="FE->BO";
              String q4="show columns FROM "+frontend.getDatabase()+"."+table_name+" where `Key` = 'PRI';"  ;
 
 
@@ -353,8 +355,8 @@ public class Synchronization extends javax.swing.JFrame {
                   list5.add(rst50.getString(1));
               }
               if(list5.equals(list4)==true){
-                   report_list.addElement("the primary key is the same");
-                   comment_list.add(" the primary key is the same\n");
+                   
+                   
           }else{
                   report_list.addElement("the table in "+backoffice.getDatabase()+" contains a wrong primary key= "+q5);
                   comment_list.add(" the table in "+backoffice.getDatabase()+" contains a wrong primary key= "+q5+"\n");
@@ -374,8 +376,8 @@ public class Synchronization extends javax.swing.JFrame {
                   list5.add(rst50.getString(1));
               }
               if(list5.equals(list4)==true){
-                 report_list.addElement("the primary key is the same");
-                 comment_list.add(" the primary key is the same\n");
+                
+                 
           }else{
                   report_list.addElement("the table in "+frontend.getDatabase()+" contains a wrong primary key= "+q4);
                   comment_list.add(" the table in "+frontend.getDatabase()+" contains a wrong primary key= "+q4+"\n");
@@ -398,8 +400,8 @@ public class Synchronization extends javax.swing.JFrame {
                   list5.add(rst50.getString(1));
               }
                if(list5.equals(list4)==true){
-                  report_list.addElement("the primary key is the same");
-                  comment_list.add(" the primary key is the same\n");
+                  
+                  
           }else{
                  report_list.addElement("the table in "+frontend.getDatabase()+" contains a wrong primary key= "+q4);
                   comment_list.add(" the table in "+frontend.getDatabase()+" contains a wrong primary key= "+q4+"\n");
@@ -427,8 +429,8 @@ public class Synchronization extends javax.swing.JFrame {
             row_bo=rst400.getInt(1);
         }
          if(row_bo==row_fe){
-            report_list.addElement("the number of row  in the '"+frontend.getDatabase()+"' and '"+backoffice.getDatabase()+"' is the same");
-            comment_list.add("Nb of rows is the same\n");
+           
+            
         }else if (row_bo!=row_fe){         
           report_list.addElement("the number of row of table : "+table_name+" in the '"+frontend.getDatabase()+"' and '"+backoffice.getDatabase()+"' is not the same");
           comment_list.add("Nb of row is not the same\n");
@@ -465,7 +467,7 @@ public class Synchronization extends javax.swing.JFrame {
             comment_list.add("Table does not exist in database '"+frontend.getDatabase());
             row_bo=0;
             row_fe=0;
-            create_excel(table_name,row_fe,row_bo,row_count,time,"N",direction,comment_list);
+            create_excel(table_name,row_fe,row_bo,time,"N",comment_list,direction);
              comment_list.clear();
             return 1;
         }
@@ -475,7 +477,7 @@ public class Synchronization extends javax.swing.JFrame {
             comment_list.add("Table does not exist in database '"+backoffice.getDatabase());
             row_fe=0;
             row_bo=0;
-            create_excel(table_name,row_fe,row_bo,row_count,time,"N",direction,comment_list);
+            create_excel(table_name,row_fe,row_bo,time,"N",comment_list,direction);
             comment_list.clear();
             return 1;
         }
@@ -504,8 +506,8 @@ public class Synchronization extends javax.swing.JFrame {
        
         
         if(nb_bo==nb_fe){
-            report_list.addElement("the number of columns of table: "+table_name+" in the '"+frontend.getDatabase()+"' and '"+backoffice.getDatabase()+"' is the same");
-            comment_list.add("Nb of columns is the same");
+            
+           
         }else{         
           report_list.addElement("the number of columns of table : "+table_name+" in the '"+frontend.getDatabase()+"' and '"+backoffice.getDatabase()+"' is not the same");
           comment_list.add("Nb of columns  in the '"+frontend.getDatabase()+"' and '"+backoffice.getDatabase()+"' is not the same\n");
@@ -531,8 +533,8 @@ public class Synchronization extends javax.swing.JFrame {
         }
         
         if(list4.containsAll(list5)==true && list5.containsAll(list4)==true){
-            report_list.addElement("the table : "+table_name+" has the same datatypes in both databases");
-            comment_list.add(" same datatypes in both databases\n");
+           
+            
         }
         else{ 
            report_list.addElement("the table : "+table_name+" has different datatypes  in both databases");
@@ -540,30 +542,7 @@ public class Synchronization extends javax.swing.JFrame {
         }
 
     }
-  public int row_difference(String table_name) throws SQLException{
-        int fe = 0,bo = 0,result;
-        String q4="SELECT COUNT(*) FROM "+frontend.getDatabase()+"."+table_name+";"  ;
-
-        ResultSet rst49 = frontend.getStmt().executeQuery(q4);
-
-        while (rst49.next()){
-            fe=rst49.getInt(1);
-        }
-
-         String q5="SELECT COUNT(*) FROM "+backoffice.getDatabase()+"."+table_name+";"  ;
-        ResultSet rst400= backoffice.getStmt().executeQuery(q5);
-
-        while (rst400.next()){
-            bo=rst400.getInt(1);
-        }
-        if(fe>bo){
-        result = fe-bo;}
-        else{ result = bo -fe;}
-        row_count=result;
-        report_list.addElement("nb of rows update : "+result);
-        /*comment_list.add("nb of rows update : "+result);*/
-        return result;
-  }
+ 
 
 
   public void column_difference(String table_name) throws SQLException{
@@ -606,7 +585,7 @@ public class Synchronization extends javax.swing.JFrame {
             list2.add(rst2.getString(1));
         }
         if(list.equals(list2)==true){
-            report_list.addElement("the table : "+table_name+" has the same datatypes length in both databases");
+           
             return 1;
         }
         else{
@@ -617,32 +596,26 @@ public class Synchronization extends javax.swing.JFrame {
    }
 
     
-    public void create_excel(String table_name,int Rows_FE,int Rows_BO,int row_count,double time,String Status,String direction,ArrayList<String> comment_list) throws FileNotFoundException, IOException, InvalidFormatException{
+    public void create_excel(String table_name,int Rows_FE,int Rows_BO,double time,String Status,ArrayList<String> comment_list,String direction) throws FileNotFoundException, IOException, InvalidFormatException{
             int max=jList.getModel().getSize();
-
             File xlsxFile = new File("Details.xlsx");
-         String listString = String.join(", ", comment_list);
-           Object[][] newinfo = {{table_name,Rows_FE,Rows_BO,row_count,time,Status,direction,listString}};
-
-
+            String listString = String.join(", ", comment_list);
+            Object[][] newinfo = {{table_name,Rows_FE,Rows_BO,time,Status,listString,direction}};
             FileInputStream inputStream = new FileInputStream(xlsxFile);
-
-
             Sheet sheet = workbook.getSheetAt(0);
 
             int rowCount = sheet.getLastRowNum();
-                Object[][] newinfo1 = {{"table_name","Rows_FE","Rows_BO","rows updated","Elapsed time(s)","Status","Direction","Comments"}};
-                for (Object[] details : newinfo1) {
+            Object[][] newinfo1 = {{"table_name","Rows_FE","Rows_BO","Elapsed time(s)","Status","Comments","Direction"}};
+            for (Object[] details : newinfo1) {
 
                 Row row1 = sheet.createRow(0);
-
                 int columnCount1 = 0;
 
                 for (Object info : details) {
                     Cell cell = row1.createCell(columnCount1++);
                     if (info instanceof String) {
                         cell.setCellValue((String) info);
-                    } else if (info instanceof Integer) {
+                    }else if (info instanceof Integer) {
                         cell.setCellValue((Integer) info);
                     }else if (info instanceof Double) {
                         cell.setCellValue((Double) info);
@@ -659,22 +632,21 @@ public class Synchronization extends javax.swing.JFrame {
                 for (Object info : details) {
 
 
-                    Cell cell = row.createCell(columnCount++);
-                    
-                    if (info instanceof String) {
+                        Cell cell = row.createCell(columnCount++);
+                        if (info instanceof String) {
                         cell.setCellValue((String) info);
-                    } else if (info instanceof Integer) {
+                        } else if (info instanceof Integer) {
                         cell.setCellValue((Integer) info);
-                    }  else if (info instanceof Double) {
-                        cell.setCellValue((Double) info);
-                    } 
+                        }  else if (info instanceof Double) {
+                           cell.setCellValue((Double) info);
+                                 } 
                 }
             }
                 if(Status.contains("N")){
                     jar++;
                     }
             inputStream.close();
-             FileOutputStream os = new FileOutputStream(xlsxFile);
+            FileOutputStream os = new FileOutputStream(xlsxFile);
             workbook.write(os);
 
             //Close the workbook and output stream
@@ -689,7 +661,6 @@ public class Synchronization extends javax.swing.JFrame {
 
         }
     }
-    
 
     private void Golden_Gate_ButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_Golden_Gate_ButtonActionPerformed
         // TODO add your handling code here:
