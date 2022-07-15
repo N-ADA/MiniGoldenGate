@@ -252,9 +252,6 @@
         <Component class="javax.swing.JButton" name="Structure_Sync_Button">
           <Properties>
             <Property name="text" type="java.lang.String" value="Structure Synchronization"/>
-            <Property name="size" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
-              <Dimension value="[160, 30]"/>
-            </Property>
           </Properties>
           <Events>
             <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="Structure_Sync_ButtonActionPerformed"/>
@@ -266,9 +263,6 @@
             <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
               <Dimension value="[160, 30]"/>
             </Property>
-            <Property name="size" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
-              <Dimension value="[160, 30]"/>
-            </Property>
           </Properties>
           <Events>
             <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="Data_Sync_ButtonActionPerformed"/>
@@ -278,9 +272,6 @@
           <Properties>
             <Property name="text" type="java.lang.String" value="Enable GoldenGate"/>
             <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
-              <Dimension value="[160, 30]"/>
-            </Property>
-            <Property name="size" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
               <Dimension value="[160, 30]"/>
             </Property>
           </Properties>
